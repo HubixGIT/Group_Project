@@ -87,7 +87,7 @@ public class LoginUser
             var token = new JwtSecurityToken(
                 _options.Issueer,
                 _options.Audience,
-                null,
+                claims,
                 null,
                 DateTime.UtcNow.AddHours(24),
                 signingCredentials);
@@ -102,9 +102,9 @@ public class LoginUser
 
 public class JwtOptions
 {
-    public string Issueer { get; set; }
-    public string Audience { get; set; }
-    public string SecretKey { get; set; }
+    public string Issueer { get; set; } = "tedt";
+    public string Audience { get; set; } = "test";
+    public string SecretKey { get; set; } = "This is my very secret key. Nobody can know it because it is so secret";
 }
 
 public class JwtOptionsSetup : IConfigureOptions<JwtOptions>
