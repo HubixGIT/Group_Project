@@ -7,4 +7,5 @@ public class User
    public string Password { get; set; }
    public string FullName { get; set; }
    public DateTime CreatedOnUtc { get; set; }
+   public virtual List<UserProject> UserProjects { get; set;}
 }

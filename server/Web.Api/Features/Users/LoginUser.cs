@@ -104,7 +104,7 @@ public class JwtOptions
 {
     public string Issueer { get; set; } = "tedt";
     public string Audience { get; set; } = "test";
-    public string SecretKey { get; set; } = "This is my very secret key. Nobody can know it because it is so secret";
+    public string SecretKey { get; set; } = "aHJMb2xoRHd6LUltbmZXQy1RQmFSYWNxR1ROZ2lDOV9fVG9NUUxHMW9Ma00tZ0J2NklSbHdkZDZTMUFxRHQtWGtnU2R5MlhzUjZwbE5IWTB2ZVg5bHc";
 }
 
 public class JwtOptionsSetup : IConfigureOptions<JwtOptions>
@@ -123,7 +123,7 @@ public class JwtOptionsSetup : IConfigureOptions<JwtOptions>
     }
 }
 
-public class JwtBearerOptionsSetup : IConfigureOptions<JwtBearerOptions>
+public class JwtBearerOptionsSetup : IConfigureNamedOptions<JwtBearerOptions>
 {
     private readonly JwtOptions _options;
 
@@ -145,6 +145,11 @@ public class JwtBearerOptionsSetup : IConfigureOptions<JwtBearerOptions>
             IssuerSigningKey = new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(_options.SecretKey))
         };
+    }
+
+    public void Configure(string? name, JwtBearerOptions options)
+    {
+        Configure(options);
     }
 }
 
