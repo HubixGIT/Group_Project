@@ -1,11 +1,8 @@
 ﻿namespace Web.Api.Entities;
 
-public class Project
+public class Project : Entity<int>
 {
-    public int Id { get; set; }
     public string Name { get; set; }
-    public DateTime CreatedOnUtc { get; set; }
-    public DateTime UpdatedOnUtc { get; set; }
     public virtual List<UserProject> UserProjects { get; set; }
 
 }

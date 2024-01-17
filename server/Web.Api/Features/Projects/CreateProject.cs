@@ -1,15 +1,11 @@
-﻿using System.Security.Cryptography;
-using System.Text;
-using Carter;
+﻿using Carter;
 using FluentValidation;
 using Mapster;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Web.Api.Contracts;
 using Web.Api.Database;
 using Web.Api.Entities;
-using Web.Api.Extensions.UserContext;
-using Web.Api.Features.Users;
+using Web.Api.Extensions.CurrentUserService;
 using Web.Api.Shared;
 
 namespace Web.Api.Features.Projects;
@@ -33,13 +29,12 @@ public class CreateProject
     {
         private readonly ApplicationDBContext _dbContext;
         private readonly IValidator<Command> _validator;
-        private readonly UserContext _userContext;
-
-        public Handler(ApplicationDBContext dbContext, IValidator<Command> validator, UserContext userContext)
+        private readonly ICurrentUserService _currentUserService;
+        public Handler(ApplicationDBContext dbContext, IValidator<Command> validator, ICurrentUserService currentUserService)
         {
             _dbContext = dbContext;
             _validator = validator;
-            _userContext = userContext;
+            _currentUserService = currentUserService;
         }
 
         public async Task<Result<int>> Handle(Command request, CancellationToken cancellationToken)
@@ -49,19 +44,13 @@ public class CreateProject
                 var validationResult = await _validator.ValidateAsync(request, cancellationToken);
                 if (!validationResult.IsValid)
                     return Result.Failure<int>(new Error("CreateProject.Validation", validationResult.ToString()));
-
-                var user = await _userContext.GetLoggedUser(cancellationToken);
-                if(user is null)
-                    return Result.Failure<int>(new Error("CreateProject.Validation", "User not found"));
-                
+                var user = _currentUserService.UserId;
                 var project = new Project()
                 {
                     Name = request.Name,
-                    UpdatedOnUtc = DateTime.UtcNow,
-                    CreatedOnUtc = DateTime.UtcNow,
                     UserProjects = new List<UserProject>() {new UserProject()
                     {
-                        UserId = user.Id,
+                        UserId = user,
                         Rank = UserProjectRankEnum.Owner
                     }}
                 };
@@ -86,11 +75,11 @@ public class CreateProjectEndpoint : ICarterModule
         app.MapPost("api/projects", async (CreateProjectRequest request, ISender sender) =>
         {
             var command = request.Adapt<CreateProject.Command>();
-            
+
             var result = await sender.Send(command);
             if (result.IsFailure)
                 return Results.BadRequest(result.Error);
-                
+
             return Results.Ok(result.Value);
         }).RequireAuthorization();
     }

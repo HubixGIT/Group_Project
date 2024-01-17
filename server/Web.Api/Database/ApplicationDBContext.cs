@@ -41,4 +41,29 @@ public class ApplicationDBContext : DbContext
     public DbSet<User> Users { get; set; }
     public DbSet<Project> Projects { get; set; }
     public DbSet<UserProject> UserProjects { get; set; }
+    
+    
+    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = new CancellationToken())
+    {
+        var entries = ChangeTracker
+            .Entries()
+            .Where(e => e.Entity is Entity && e.State is EntityState.Added or EntityState.Modified);
+
+        foreach (var entityEntry in entries)
+        {
+            ((Entity)entityEntry.Entity).UpdatedTime = DateTime.Now;
+            entityEntry.Property("UpdatedTime").IsModified = true;
+
+            if (entityEntry.State == EntityState.Added)
+            {
+                ((Entity)entityEntry.Entity).CreatedTime = DateTime.Now;
+            }
+            else
+            {
+                entityEntry.Property("CreatedTime").IsModified = false;
+            }
+        }
+
+        return base.SaveChangesAsync(cancellationToken);
+    }
 }

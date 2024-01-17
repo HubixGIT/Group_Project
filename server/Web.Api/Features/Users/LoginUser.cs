@@ -39,12 +39,12 @@ public class LoginUser
     {
         private readonly ApplicationDBContext _dbContext;
         private readonly IValidator<Command> _validator;
-        private readonly JwtOptions _options;
-        public Handler(ApplicationDBContext dbContext, IValidator<Command> validator, IOptions<JwtOptions> options)
+        private readonly IConfiguration _configuration;
+        public Handler(ApplicationDBContext dbContext, IValidator<Command> validator, IConfiguration configuration)
         {
             _dbContext = dbContext;
             _validator = validator;
-            _options = options.Value;
+            _configuration = configuration;
         }
 
         public async Task<Result<string>> Handle(Command request, CancellationToken cancellationToken)
@@ -62,7 +62,7 @@ public class LoginUser
             if(user is null)
                 return Result.Failure<string>(new Error("LoginUser.UserNotFound", "User has not be found"));
 
-            return GenerateJWT(user);
+            return GenerateJwt(user);
         }
         string QuickHash(string input)
         {
@@ -71,85 +71,31 @@ public class LoginUser
             return Convert.ToHexString(inputHash);
         }
 
-        string GenerateJWT(User user)
+        private string GenerateJwt(User user)
         {
             var claims = new Claim[]
             {
                 new (JwtRegisteredClaimNames.Sub, user.Id.ToString()),
                 new (JwtRegisteredClaimNames.Email, user.Email),
             };
+    
 
-            var signingCredentials = new SigningCredentials(
-                new SymmetricSecurityKey(
-                    Encoding.UTF8.GetBytes(_options.SecretKey)),
-                SecurityAlgorithms.HmacSha256);
-            
+            var securityKey =
+                new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"] ?? string.Empty));
+            var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
             var token = new JwtSecurityToken(
-                _options.Issueer,
-                _options.Audience,
-                claims,
-                null,
-                DateTime.UtcNow.AddHours(24),
-                signingCredentials);
+                issuer: _configuration["Jwt:Issuer"],
+                audience: _configuration["Jwt:Audience"],
+                claims: claims,
+                expires: DateTime.Now.AddMinutes(Convert.ToDouble(_configuration["Jwt:ExpiryMinutes"])),
+                signingCredentials: credentials
+            );
 
             string tokenValue = new JwtSecurityTokenHandler()
                 .WriteToken(token);
 
             return tokenValue;
         }
-    }
-}
-
-public class JwtOptions
-{
-    public string Issueer { get; set; } = "tedt";
-    public string Audience { get; set; } = "test";
-    public string SecretKey { get; set; } = "aHJMb2xoRHd6LUltbmZXQy1RQmFSYWNxR1ROZ2lDOV9fVG9NUUxHMW9Ma00tZ0J2NklSbHdkZDZTMUFxRHQtWGtnU2R5MlhzUjZwbE5IWTB2ZVg5bHc";
-}
-
-public class JwtOptionsSetup : IConfigureOptions<JwtOptions>
-{
-    private readonly IConfiguration _configuration;
-    private const string SectionName = "Jwt";
-
-    public JwtOptionsSetup(IConfiguration configuration)
-    {
-        _configuration = configuration;
-    }
-
-    public void Configure(JwtOptions options)
-    {
-        _configuration.GetSection(SectionName).Bind(options);   
-    }
-}
-
-public class JwtBearerOptionsSetup : IConfigureNamedOptions<JwtBearerOptions>
-{
-    private readonly JwtOptions _options;
-
-    public JwtBearerOptionsSetup(IOptions<JwtOptions> options)
-    {
-        _options = options.Value;
-    }
-
-    public void Configure(JwtBearerOptions options)
-    {
-        options.TokenValidationParameters = new TokenValidationParameters()
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = _options.Issueer,
-            ValidAudience = _options.Audience,
-            IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(_options.SecretKey))
-        };
-    }
-
-    public void Configure(string? name, JwtBearerOptions options)
-    {
-        Configure(options);
     }
 }
 
