@@ -4,6 +4,7 @@ using Carter;
 using FluentValidation;
 using Mapster;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using Web.Api.Contracts;
 using Web.Api.Database;
 using Web.Api.Entities;
@@ -48,13 +49,15 @@ public class CreateUser
             if (!validationResult.IsValid)
                 return Result.Failure<Guid>(new Error("CreateUser.Validation", validationResult.ToString()));
 
+            if(await _dbContext.Users.AnyAsync(x=>x.Email == request.Email, cancellationToken: cancellationToken))
+                return Result.Failure<Guid>(new Error("CreateUser.Validation", "User already exists"));
+            
             var user = new User()
             {
                 Id = Guid.NewGuid(),
                 Password = QuickHash(request.Password),
                 FullName = request.FullName,
                 Email = request.Email,
-                CreatedOnUtc = DateTime.UtcNow
             };
             await _dbContext.Users.AddAsync(user, cancellationToken);
             await _dbContext.SaveChangesAsync(cancellationToken);
