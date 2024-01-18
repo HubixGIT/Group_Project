@@ -2,7 +2,7 @@
 using FluentValidation;
 using Mapster;
 using MediatR;
-using Web.Api.Contracts;
+using Web.Api.Contracts.Projects.Create;
 using Web.Api.Database;
 using Web.Api.Entities;
 using Web.Api.Extensions.CurrentUserService;

@@ -1,4 +1,4 @@
-﻿namespace Web.Api.Contracts;
+﻿namespace Web.Api.Contracts.Projects.Create;
 
 public class CreateProjectRequest
 {
