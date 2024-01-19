@@ -2,11 +2,8 @@
 using FluentValidation;
 using Mapster;
 using MediatR;
-using Microsoft.EntityFrameworkCore;
-using Web.Api.Contracts;
 using Web.Api.Contracts.Projects.Update;
 using Web.Api.Database;
-using Web.Api.Entities;
 using Web.Api.Extensions.CurrentUserService;
 using Web.Api.Shared;
 
@@ -48,12 +45,16 @@ public class UpdateProject
             {
                 var validationResult = await _validator.ValidateAsync(request, cancellationToken);
                 if (!validationResult.IsValid)
-                    return Result.Failure<int>(new Error("UpdateProject.Validation", validationResult.ToString()));
+                    return Result.Failure(new Error("UpdateProject.Validation", validationResult.ToString()));
                 
-                if (!await CanUpdate(request.ProjectId, _currentUserService.UserId, cancellationToken))
-                    return Result.Failure<int>(new Error("UpdateProject.NoAccess", "Access denied"));
+                if (!await _currentUserService.CanModerateProject(request.ProjectId, cancellationToken))
+                    return Result.Failure(new Error("UpdateProject.NoAccess", "Access denied"));
                 
-                await UpdateProject(request.ProjectId, request.Name, cancellationToken);
+                var success = await UpdateProject(request.ProjectId, request.Name, cancellationToken);
+                
+                if (!success)
+                    return Result.Failure(new Error("UpdateProject.NoAccess", "Access denied"));
+                
                 await _dbContext.SaveChangesAsync(cancellationToken);
                 return Result.Success();
             }
@@ -64,15 +65,7 @@ public class UpdateProject
             }
         }
 
-        private async Task<bool> CanUpdate(int projectId, Guid userId, CancellationToken cancellationToken = default)
-        {
-            return await _dbContext.UserProjects
-                .AnyAsync(x => x.ProjectId == projectId && x.UserId == userId 
-                                                        && x.Rank != UserProjectRankEnum.Participant,
-                    cancellationToken);
-        }
-        
-        public async Task UpdateProject(int projectId, string name, CancellationToken cancellationToken = default)
+        public async Task<bool> UpdateProject(int projectId, string name, CancellationToken cancellationToken = default)
         {
             var project = _dbContext.Projects.FirstOrDefault(x => x.Id == projectId);
 
@@ -80,7 +73,10 @@ public class UpdateProject
             {
                 project.Name = name;
                 _dbContext.Projects.Update(project);
+                return true;
             }
+
+            return false;
         }
     }
 }
