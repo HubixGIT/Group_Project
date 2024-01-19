@@ -1,13 +1,7 @@
 ﻿using Carter;
 using FluentValidation;
-using Mapster;
 using MediatR;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Web.Api.Contracts;
-using Web.Api.Contracts.Projects.Delete;
 using Web.Api.Database;
-using Web.Api.Entities;
 using Web.Api.Extensions.CurrentUserService;
 using Web.Api.Shared;
 
@@ -48,7 +42,7 @@ public class DeleteProject
                 if (!validationResult.IsValid)
                     return Result.Failure<int>(new Error("DeleteProject.Validation", validationResult.ToString()));
 
-                if (!await CanDelete(request.ProjectId, _currentUserService.UserId, cancellationToken))
+                if (!await _currentUserService.IsProjectOwner(request.ProjectId, cancellationToken))
                     return Result.Failure<int>(new Error("DeleteProject.NoAccess", "Access denied"));
 
                 await DeleteProject(request.ProjectId, cancellationToken);
@@ -60,13 +54,6 @@ public class DeleteProject
                 Console.WriteLine(e);
                 return Result.Failure<int>(new Error("DeleteProject", e.ToString()));
             }
-        }
-
-        public async Task<bool> CanDelete(int projectId, Guid userId, CancellationToken cancellationToken = default)
-        {
-            return await _dbContext.UserProjects
-                .AnyAsync(x => x.ProjectId == projectId && x.UserId == userId && x.Rank == UserProjectRankEnum.Owner,
-                cancellationToken);
         }
 
         public async Task DeleteProject(int projectId, CancellationToken cancellationToken = default)

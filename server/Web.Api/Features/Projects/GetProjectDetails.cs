@@ -51,7 +51,7 @@ public class GetProjectDetails
                 if (!validationResult.IsValid)
                     return Result.Failure<GetProjectDetailsResponse>(new Error("GetProjectDetails.Validation", validationResult.ToString()));
 
-                if (!await HasAccess(request.ProjectId, _currentUserService.UserId, cancellationToken))
+                if (!await _currentUserService.IsProjectMember(request.ProjectId, cancellationToken))
                     return Result.Failure<GetProjectDetailsResponse>(new Error("GetProjectDetails.NoAccess", "Access denied"));
 
                 var project = await GetProjectDetails(request.ProjectId, cancellationToken);
@@ -67,14 +67,7 @@ public class GetProjectDetails
                 return Result.Failure<GetProjectDetailsResponse>(new Error("GetProjectDetails.Exception", e.ToString()));
             }
         }
-
-        private async Task<bool> HasAccess(int projectId, Guid userId, CancellationToken cancellationToken = default)
-        {
-            return await _dbContext.UserProjects
-                .AnyAsync(x => x.ProjectId == projectId && x.UserId == userId,
-                    cancellationToken);
-        }
-
+        
         private async Task<ProjectDto?> GetProjectDetails(int projectId, CancellationToken cancellationToken = default)
         {
             return await _dbContext.Projects.Where(x => x.Id == projectId).Select(x => new ProjectDto()
