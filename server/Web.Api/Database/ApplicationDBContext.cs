@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Web.Api.Entities;
+using Task = System.Threading.Tasks.Task;
 
 namespace Web.Api.Database;
 
@@ -36,11 +37,34 @@ public class ApplicationDBContext : DbContext
                 .HasForeignKey(x => x.ProjectId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
+        
+        modelBuilder.Entity<ProjectTask>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id)
+                .UseIdentityColumn();
+            entity.HasIndex(x => x.ProjectId);
+            entity.HasOne(x => x.Project)
+                .WithMany(x => x.ProjectTasks)
+                .HasForeignKey(x => x.ProjectId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(x => x.UserProjectId);
+            entity.HasOne(x => x.UserProject)
+                .WithMany(x => x.ProjectTasks)
+                .HasForeignKey(x => x.UserProjectId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.Property(x => x.TaskStatus)
+                .HasDefaultValue(TaskStatusEnum.Backlog);
+        });
     }
     
     public DbSet<User> Users { get; set; }
     public DbSet<Project> Projects { get; set; }
     public DbSet<UserProject> UserProjects { get; set; }
+    
+    public DbSet<ProjectTask> ProjectTasks { get; set; }
     
     
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = new CancellationToken())

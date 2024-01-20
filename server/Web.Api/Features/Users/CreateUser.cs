@@ -88,6 +88,6 @@ public class CreateUserEndpoint : ICarterModule
                 return Results.BadRequest(result.Error);
                 
             return Results.Ok(result.Value);
-        });
+        }).WithTags("Users");
     }
 }

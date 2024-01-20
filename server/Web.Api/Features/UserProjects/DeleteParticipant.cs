@@ -106,6 +106,6 @@ public class DeleteParticipantEndpoint : ICarterModule
                 return Results.BadRequest(result.Error);
 
             return Results.Ok(result);
-        }).RequireAuthorization();
+        }).RequireAuthorization().WithTags("UserProjects");
     }
 }

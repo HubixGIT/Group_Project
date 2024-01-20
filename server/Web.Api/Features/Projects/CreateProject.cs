@@ -15,13 +15,15 @@ public class CreateProject
     public class Command : IRequest<Result<int>>
     {
         public string Name { get; set; }
+        public string Description { get; set; }
     }
 
     public class Validator : AbstractValidator<Command>
     {
         public Validator()
         {
-            RuleFor(c => c.Name).NotEmpty();
+            RuleFor(c => c.Name).MaximumLength(Entity.NameMaxLength);
+            RuleFor(x => x.Description).MaximumLength(Entity.DescriptionMaxLength);
         }
     }
     
@@ -48,6 +50,7 @@ public class CreateProject
                 var project = new Project()
                 {
                     Name = request.Name,
+                    Description = request.Description,
                     UserProjects = new List<UserProject>() {new UserProject()
                     {
                         UserId = user,
@@ -81,6 +84,6 @@ public class CreateProjectEndpoint : ICarterModule
                 return Results.BadRequest(result.Error);
 
             return Results.Ok(result.Value);
-        }).RequireAuthorization();
+        }).RequireAuthorization().WithTags("Projects");
     }
 }

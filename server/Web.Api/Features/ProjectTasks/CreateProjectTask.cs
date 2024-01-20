@@ -2,30 +2,30 @@
 using FluentValidation;
 using Mapster;
 using MediatR;
-using Microsoft.EntityFrameworkCore;
-using Web.Api.Contracts.UserProjects.AddParticipant;
+using Web.Api.Contracts.ProjectTasks.Create;
 using Web.Api.Database;
 using Web.Api.Entities;
 using Web.Api.Extensions.CurrentUserService;
 using Web.Api.Shared;
 
-namespace Web.Api.Features.UserProjects;
+namespace Web.Api.Features.ProjectTasks;
 
-public class AddParticipant
+public class CreateProjectTask
 {
     public class Command : IRequest<Result<int>>
     {
+        public string Name { get; set; }
+        public string Description { get; set; }
+        public TaskStatusEnum TaskStatus { get; set; }
         public int ProjectId { get; set; }
-        public string Email { get; set; }
-        public UserProjectRankEnum Rank { get; set; }
     }
     
     public class Validator : AbstractValidator<Command>
     {
         public Validator()
         {
-            RuleFor(c => c.ProjectId).NotEmpty();
-            RuleFor(c => c.Email).EmailAddress();
+            RuleFor(c => c.Name).MaximumLength(Entity.NameMaxLength);
+            RuleFor(x => x.Description).MaximumLength(Entity.DescriptionMaxLength);
         }
     }
     
@@ -48,50 +48,43 @@ public class AddParticipant
             {
                 var validationResult = await _validator.ValidateAsync(request, cancellationToken);
                 if (!validationResult.IsValid)
-                    return Result.Failure<int>(new Error("AddParticipant.Validation", validationResult.ToString()));
-                
-                if (!await _currentUserService.CanModerateProject(request.ProjectId, cancellationToken))
-                    return Result.Failure<int>(new Error("AddParticipant.NoAccess", "Access denied"));
-
-
-                var userId = await _dbContext.Users
-                    .Where(x => x.Email == request.Email)
-                    .Select(x => x.Id)
-                    .SingleOrDefaultAsync(cancellationToken);
-
-                var userProject = new UserProject()
+                    return Result.Failure<int>(new Error("CreateProjectTask.Validation", validationResult.ToString()));
+                if (!await _currentUserService.IsProjectMember(request.ProjectId, cancellationToken))
+                    return Result.Failure<int>(new Error("CreateProjectTask.NoAccess", "Access denied"));
+                var user = _currentUserService.UserId;
+                var projectTask = new ProjectTask()
                 {
+                    Name = request.Name,
+                    Description = request.Description,
+                    TaskStatus = request.TaskStatus,
                     ProjectId = request.ProjectId,
-                    UserId = userId,
-                    Rank = request.Rank
                 };
-                
-                await _dbContext.UserProjects.AddAsync(userProject, cancellationToken);
+                await _dbContext.ProjectTasks.AddAsync(projectTask, cancellationToken);
                 await _dbContext.SaveChangesAsync(cancellationToken);
-                return userProject.Id;
+                return projectTask.Id;
             }
             catch (Exception e)
             {
                 Console.WriteLine(e);
-                return Result.Failure<int>(new Error("CreateProject.Exception", e.ToString()));
+                return Result.Failure<int>(new Error("CreateProjectTask.Exception", e.ToString()));
             }
         }
     }
 }
 
-public class AddProjectParticipantEndpoint : ICarterModule
+public class CreateProjectTaskEndpoint : ICarterModule
 {
     public void AddRoutes(IEndpointRouteBuilder app)
     {
-        app.MapPost("api/userprojects", async (AddParticipantRequest request,  ISender sender) =>
+        app.MapPost("api/projecttasks", async (CreateProjectTaskRequest request, ISender sender) =>
         {
-            var command = request.Adapt<AddParticipant.Command>();
+            var command = request.Adapt<CreateProjectTask.Command>();
 
             var result = await sender.Send(command);
             if (result.IsFailure)
                 return Results.BadRequest(result.Error);
 
             return Results.Ok(result.Value);
-        }).RequireAuthorization().WithTags("UserProjects");
+        }).RequireAuthorization().WithTags("ProjectTasks");
     }
 }
