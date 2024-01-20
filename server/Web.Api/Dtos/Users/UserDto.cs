@@ -1,4 +1,4 @@
-﻿namespace Web.Api.Dtos.Project;
+﻿namespace Web.Api.Dtos.Users;
 
 public class UserDto
 {

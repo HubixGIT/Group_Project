@@ -66,6 +66,6 @@ public class GetProjectsListEndpoint : ICarterModule
                 return Results.BadRequest(result.Error);
 
             return Results.Ok(result.Value);
-        }).RequireAuthorization();
+        }).RequireAuthorization().WithTags("Projects").WithTags("Projects");
     }
 }

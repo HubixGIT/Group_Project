@@ -1,14 +1,13 @@
 ﻿using Carter;
 using FluentValidation;
-using Mapster;
 using MediatR;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Web.Api.Contracts;
 using Web.Api.Contracts.Projects.Details;
 using Web.Api.Database;
 using Web.Api.Dtos.Project;
-using Web.Api.Entities;
+using Web.Api.Dtos.ProjectTask;
+using Web.Api.Dtos.UserProjects;
+using Web.Api.Dtos.Users;
 using Web.Api.Extensions.CurrentUserService;
 using Web.Api.Shared;
 
@@ -74,6 +73,18 @@ public class GetProjectDetails
             {
                 Id = x.Id,
                 Name = x.Name,
+                ProjectTasks = x.ProjectTasks.Select(t=> new ProjectTaskListItemDto()
+                {
+                    Id = t.Id,
+                    Name = t.Name,
+                    TaskStatus = t.TaskStatus,
+                    Contractor = t.UserProjectId.HasValue ?  new ProjectTaskContractorDto()
+                    {
+                        Email = t.UserProject!.User.Email,
+                        UserFullName = t.UserProject!.User.FullName,
+                        UserProjectId = t.UserProjectId.Value,
+                    } : null
+                }).ToList(),
                 Participants = x.UserProjects.Select(p => new UserProjectDto()
                 {
                     Id = p.Id,
@@ -104,6 +115,6 @@ public class GetProjectDetailsEndpoint : ICarterModule
                 return Results.BadRequest(result.Error);
 
             return Results.Ok(result.Value);
-        }).RequireAuthorization();
+        }).RequireAuthorization().WithTags("Projects");
     }
 }

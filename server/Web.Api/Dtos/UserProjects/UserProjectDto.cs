@@ -1,6 +1,8 @@
-﻿using Web.Api.Entities;
+﻿using Web.Api.Dtos.Project;
+using Web.Api.Dtos.Users;
+using Web.Api.Entities;
 
-namespace Web.Api.Dtos.Project;
+namespace Web.Api.Dtos.UserProjects;
 
 public class UserProjectDto
 {

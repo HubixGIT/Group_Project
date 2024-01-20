@@ -9,7 +9,7 @@ namespace Web.Api.Features.Projects;
 
 public class DeleteProject
 {
-    public class Command : IRequest<Result<int>>
+    public class Command : IRequest<Result>
     {
         public int ProjectId { get; set; }
     }
@@ -21,7 +21,7 @@ public class DeleteProject
             RuleFor(x => x.ProjectId).NotEmpty();
         }
     }
-    internal sealed class Handler : IRequestHandler<DeleteProject.Command, Result<int>>
+    internal sealed class Handler : IRequestHandler<DeleteProject.Command, Result>
     {
         private readonly ApplicationDBContext _dbContext;
         private readonly IValidator<Command> _validator;
@@ -34,7 +34,7 @@ public class DeleteProject
             _currentUserService = currentUserService;
         }
 
-        public async Task<Result<int>> Handle(Command request, CancellationToken cancellationToken)
+        public async Task<Result> Handle(Command request, CancellationToken cancellationToken)
         {
             try
             {
@@ -47,7 +47,7 @@ public class DeleteProject
 
                 await DeleteProject(request.ProjectId, cancellationToken);
                 await _dbContext.SaveChangesAsync(cancellationToken);
-                return request.ProjectId;
+                return Result.Success();
             }
             catch (Exception e)
             {
@@ -78,7 +78,7 @@ public class DeleteProjectEndpoint : ICarterModule
             if (result.IsFailure)
                 return Results.BadRequest(result.Error);
 
-            return Results.Ok(result.Value);
-        }).RequireAuthorization();
+            return Results.Ok(result);
+        }).RequireAuthorization().WithTags("Projects");
     }
 }

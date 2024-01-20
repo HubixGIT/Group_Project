@@ -2,38 +2,39 @@
 using FluentValidation;
 using Mapster;
 using MediatR;
-using Web.Api.Contracts.Projects.Update;
+using Microsoft.EntityFrameworkCore;
+using Web.Api.Contracts.ProjectTasks.Update;
 using Web.Api.Database;
 using Web.Api.Entities;
 using Web.Api.Extensions.CurrentUserService;
 using Web.Api.Shared;
 
-namespace Web.Api.Features.Projects;
+namespace Web.Api.Features.ProjectTasks;
 
-public class UpdateProject
+public class UpdateProjectTask
 {
     public class Command : IRequest<Result> 
     {
-        public int ProjectId { get; set; }
+        public int ProjectTaskId { get; set; }
         public string Name { get; set; }
         public string Description { get; set; }
     }
-
+    
     public class Validator : AbstractValidator<Command>
     {
         public Validator()
         {
-            RuleFor(x => x.ProjectId).NotEmpty();
+            RuleFor(x => x.ProjectTaskId).NotEmpty();
             RuleFor(x => x.Name).MaximumLength(Entity.NameMaxLength);
             RuleFor(x => x.Description).MaximumLength(Entity.DescriptionMaxLength);
         }
     }
     
-    internal sealed class Handler : IRequestHandler<UpdateProject.Command, Result>
+    internal sealed class Handler : IRequestHandler<UpdateProjectTask.Command, Result>
     {
         private readonly ApplicationDBContext _dbContext;
-        private readonly IValidator<Command> _validator;
         private readonly ICurrentUserService _currentUserService;
+        private readonly IValidator<Command> _validator;
 
         public Handler(ApplicationDBContext dbContext, IValidator<Command> validator, ICurrentUserService currentUserService)
         {
@@ -48,15 +49,18 @@ public class UpdateProject
             {
                 var validationResult = await _validator.ValidateAsync(request, cancellationToken);
                 if (!validationResult.IsValid)
-                    return Result.Failure(new Error("UpdateProject.Validation", validationResult.ToString()));
+                    return Result.Failure(new Error("UpdateProjectTask.Validation", validationResult.ToString()));
+
+                var projectId = await _dbContext.ProjectTasks.Where(x => x.Id == request.ProjectTaskId)
+                    .Select(x => x.ProjectId).FirstOrDefaultAsync(cancellationToken);
                 
-                if (!await _currentUserService.CanModerateProject(request.ProjectId, cancellationToken))
-                    return Result.Failure(new Error("UpdateProject.NoAccess", "Access denied"));
+                if (!await _currentUserService.CanModerateProject(projectId, cancellationToken))
+                    return Result.Failure(new Error("UpdateProjectTask.NoAccess", "Access denied"));
                 
-                var success = await UpdateProject(request.ProjectId, request.Name, request.Description, cancellationToken);
+                var success = await UpdateProjectTask(request.ProjectTaskId, request.Name, request.Description, cancellationToken);
                 
                 if (!success)
-                    return Result.Failure(new Error("UpdateProject.NoAccess", "Access denied"));
+                    return Result.Failure(new Error("UpdateProjectTask.NoAccess", "Access denied"));
                 
                 await _dbContext.SaveChangesAsync(cancellationToken);
                 return Result.Success();
@@ -64,19 +68,18 @@ public class UpdateProject
             catch (Exception e)
             {
                 Console.WriteLine(e);
-                return Result.Failure(new Error("UpdateProject.Exception", e.ToString()));
+                return Result.Failure(new Error("UpdateProjectTask.Excetpion", e.ToString()));
             }
         }
-
-        public async Task<bool> UpdateProject(int projectId, string name, string description, CancellationToken cancellationToken = default)
+        public async Task<bool> UpdateProjectTask(int projectTaskId, string name, string description, CancellationToken cancellationToken = default)
         {
-            var project = _dbContext.Projects.FirstOrDefault(x => x.Id == projectId);
+            var projectTask = _dbContext.ProjectTasks.FirstOrDefault(x => x.Id == projectTaskId);
 
-            if (project != null)
+            if (projectTask != null)
             {
-                project.Name = name;
-                project.Description = description;
-                _dbContext.Projects.Update(project);
+                projectTask.Name = name;
+                projectTask.Description = description;
+                _dbContext.ProjectTasks.Update(projectTask);
                 return true;
             }
 
@@ -85,19 +88,19 @@ public class UpdateProject
     }
 }
 
-public class UpdateProjectEndpoint : ICarterModule
+public class UpdateProjectTaskEndpoint : ICarterModule
 {
     public void AddRoutes(IEndpointRouteBuilder app)
     {
-        app.MapPut("api/projects/{id}", async (UpdateProjectRequest request, ISender sender) =>
+        app.MapPut("api/projecttasks/{id}", async (UpdateProjectTaskRequest request, ISender sender) =>
         {
-            var command = request.Adapt<UpdateProject.Command>();
+            var command = request.Adapt<UpdateProjectTask.Command>();
 
             var result = await sender.Send(command);
             if (result.IsFailure)
                 return Results.BadRequest(result.Error);
 
             return Results.Ok(result);
-        }).RequireAuthorization().WithTags("Projects");
+        }).RequireAuthorization().WithTags("ProjectTasks");
     }
 }

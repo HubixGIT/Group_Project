@@ -99,6 +99,6 @@ public class UpdateParticipantRankEndpoint : ICarterModule
                 return Results.BadRequest(result.Error);
 
             return Results.Ok(result);
-        }).RequireAuthorization();
+        }).RequireAuthorization().WithTags("UserProjects");
     }
 }
