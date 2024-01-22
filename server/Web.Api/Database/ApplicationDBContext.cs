@@ -58,6 +58,25 @@ public class ApplicationDBContext : DbContext
             entity.Property(x => x.TaskStatus)
                 .HasDefaultValue(TaskStatusEnum.Backlog);
         });
+        
+        modelBuilder.Entity<Comment>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id)
+                .UseIdentityColumn();
+            
+            entity.HasIndex(x => x.ProjectTaskId);
+            entity.HasOne(x => x.ProjectTask)
+                .WithMany(x => x.Comments)
+                .HasForeignKey(x => x.ProjectTaskId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(x => x.UserProjectId);
+            entity.HasOne(x => x.UserProject)
+                .WithMany(x => x.Comments)
+                .HasForeignKey(x => x.UserProjectId)
+                .OnDelete(DeleteBehavior.NoAction);
+        });
     }
     
     public DbSet<User> Users { get; set; }
@@ -65,8 +84,9 @@ public class ApplicationDBContext : DbContext
     public DbSet<UserProject> UserProjects { get; set; }
     
     public DbSet<ProjectTask> ProjectTasks { get; set; }
-    
-    
+    public DbSet<Comment> Comments { get; set; }
+
+
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = new CancellationToken())
     {
         var entries = ChangeTracker

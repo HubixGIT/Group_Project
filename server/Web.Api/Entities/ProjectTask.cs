@@ -8,5 +8,6 @@ public class ProjectTask : Entity<int>
     public virtual Project Project { get; set; }
     public int? UserProjectId { get; set; }
     public virtual UserProject? UserProject { get; set; }
+    public virtual List<Comment> Comments { get; set; }
     public TaskStatusEnum TaskStatus { get; set; }
 }

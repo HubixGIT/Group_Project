@@ -8,4 +8,5 @@ public class UserProject : Entity<int>
     public virtual Project Project { get; set; }
     public UserProjectRankEnum Rank { get; set; }
     public virtual List<ProjectTask> ProjectTasks { get; set; }
+    public virtual List<Comment> Comments { get; set; }
 }
