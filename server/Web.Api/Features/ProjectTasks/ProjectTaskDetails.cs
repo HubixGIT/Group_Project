@@ -4,6 +4,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Web.Api.Contracts.ProjectTasks.Details;
 using Web.Api.Database;
+using Web.Api.Dtos.Comments;
 using Web.Api.Dtos.ProjectTask;
 using Web.Api.Extensions.CurrentUserService;
 using Web.Api.Shared;
@@ -73,6 +74,13 @@ public class ProjectTaskDetails
                 Name = t.Name,
                 TaskStatus = t.TaskStatus,
                 Description = t.Description,
+                Comments = t.Comments.Select(c=> new CommentDto()
+                {
+                    Id = c.Id,
+                    Content = c.Content,
+                    UserProjectId = c.UserProjectId,
+                    ProjectTaskId = c.ProjectTaskId
+                }).ToList(),
                 Contractor = t.UserProjectId.HasValue ?  new ProjectTaskContractorDto()
                 {
                     Email = t.UserProject!.User.Email,
