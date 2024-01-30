@@ -1,7 +1,8 @@
 import axios from 'axios';
-import { Field, Formik } from 'formik';
-import { Form, Link, useNavigate } from 'react-router-dom';
+import { Field, Form, Formik } from 'formik';
+import { Link, useNavigate } from 'react-router-dom';
 import ButtonMain from '../components/ui/ButtonMain';
+import { useEffect } from 'react';
 
 interface FormValues {
   fullName: string;
@@ -12,24 +13,31 @@ interface FormValues {
 export default function Registration() {
   const navigate = useNavigate();
 
+  useEffect(() => {
+    if (localStorage.getItem('token')) navigate('/dashboard');
+  });
+
+  const handleRegistration = (values: FormValues) => {
+    const body = {
+      fullName: values.fullName,
+      email: values.email,
+      password: values.password,
+    };
+    axios
+      .post('/api/users', body)
+      .then(() => navigate('/login'))
+      .catch((err) => {
+        console.error(err);
+        return alert('Something went wrong, try again');
+      });
+  };
+
   return (
     <div className="flex h-screen items-center justify-center bg-login bg-cover bg-no-repeat">
       <Formik
         initialValues={{ fullName: '', email: '', password: '' } as FormValues}
         onSubmit={(values) => {
-          console.log('here ' + values);
-          const body = {
-            fullName: values.fullName,
-            email: values.email,
-            password: values.password,
-          };
-          axios
-            .post('/api/users', body)
-            .then(() => navigate('/login'))
-            .catch((err) => {
-              console.error(err);
-              return alert('Something went wrong, try again');
-            });
+          handleRegistration(values);
         }}
       >
         {({ isSubmitting }) => (

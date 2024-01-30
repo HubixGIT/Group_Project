@@ -2,6 +2,7 @@ import axios from 'axios';
 import { Field, Form, Formik } from 'formik';
 import { Link, useNavigate } from 'react-router-dom';
 import ButtonMain from '../components/ui/ButtonMain';
+import { useEffect } from 'react';
 
 interface FormValues {
   email: string;
@@ -11,25 +12,33 @@ interface FormValues {
 export default function Login() {
   const navigate = useNavigate();
 
+  useEffect(() => {
+    if (localStorage.getItem('token')) navigate('/dashboard');
+  });
+
+  const handleLogin = (values: FormValues) => {
+    axios
+      .post('/api/login', {
+        email: values.email,
+        password: values.password,
+      })
+      .then((res) => {
+        if (!res.data) return alert('Something went wrong, try again');
+        localStorage.setItem('token', res.data);
+        return navigate('/dashboard');
+      })
+      .catch((err) => {
+        console.error(err);
+        return alert('Login failed, please check your credentials');
+      });
+  };
+
   return (
     <div className="flex h-screen items-center justify-center bg-login bg-cover bg-no-repeat">
       <Formik
         initialValues={{ email: '', password: '' } as FormValues}
         onSubmit={(values) => {
-          axios
-            .post('/api/login', {
-              email: values.email,
-              password: values.password,
-            })
-            .then((res) => {
-              if (!res.data) return alert('Something went wrong, try again');
-              localStorage.setItem('token', res.data);
-              return navigate('/dashboard');
-            })
-            .catch((err) => {
-              console.error(err);
-              return alert('Login failed, please check your credentials');
-            });
+          handleLogin(values);
         }}
       >
         {({ isSubmitting }) => (
