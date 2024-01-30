@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { Field, Form, Formik } from 'formik';
-import { Link, redirect } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import ButtonMain from '../components/ui/ButtonMain';
 
 interface FormValues {
@@ -9,25 +9,13 @@ interface FormValues {
 }
 
 export default function Login() {
+  const navigate = useNavigate();
+
   return (
     <div className="flex h-screen items-center justify-center bg-login bg-cover bg-no-repeat">
       <Formik
         initialValues={{ email: '', password: '' } as FormValues}
-        validate={(values: FormValues) => {
-          const errors: Partial<FormValues> = {};
-          if (!values.password) {
-            errors.password = 'Password is required';
-          }
-          if (!values.email) {
-            errors.email = 'Email is required';
-          } else if (
-            !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(values.email)
-          ) {
-            errors.email = 'Invalid email address';
-          }
-          return errors;
-        }}
-        onSubmit={async (values) => {
+        onSubmit={(values) => {
           axios
             .post('/api/login', {
               email: values.email,
@@ -36,7 +24,7 @@ export default function Login() {
             .then((res) => {
               if (!res.data) return alert('Something went wrong, try again');
               localStorage.setItem('token', res.data);
-              return redirect('/dashboard');
+              return navigate('/dashboard');
             })
             .catch((err) => {
               console.error(err);
