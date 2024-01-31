@@ -14,7 +14,7 @@ export default function Login() {
 
   useEffect(() => {
     if (localStorage.getItem('token')) navigate('/dashboard');
-  });
+  }, []);
 
   const handleLogin = (values: FormValues) => {
     axios
